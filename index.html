@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: left; }
+    th { background: #f3f3f3; }
+    form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    input { flex: 1; min-width: 140px; padding: 0.4rem; }
+    #status { margin: 1rem 0; padding: 0.5rem 0.75rem; border-radius: 4px; background: #eef; }
+    #status.error { background: #fee; color: #900; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Sheet demo</h1>
+  <div id="status">Not signed in yet.</div>
+  <button id="signin" disabled>Sign in with Google</button>
+
+  <section id="app" hidden>
+    <table id="table"></table>
+    <form id="add-form">
+      <input id="term1" placeholder="Termo 1" required>
+      <input id="term2" placeholder="Termo 2" required>
+      <button type="submit">Add row</button>
+    </form>
+  </section>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initAuth()"></script>
+</body>
+</html>
