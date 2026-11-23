@@ -1,6 +1,7 @@
 const { CLIENT_ID, SPREADSHEET_ID, RANGE } = window.CONFIG;
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(RANGE)}`;
+const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
 
 const $ = (id) => document.getElementById(id);
 let tokenClient;
@@ -31,12 +32,44 @@ async function api(url, options = {}) {
   });
   if (res.status === 401) {
     signedOut("Token expired. Sign in again.");
-    throw new Error("Token expired.");
+    const err = new Error("Token expired.");
+    err.handled = true;
+    throw err;
   }
   const body = await res.json();
   if (!res.ok) throw new Error(`API error ${res.status}: ${body.error?.message ?? "unknown"}`);
   return body;
 }
+
+const sheetsBackend = {
+  async list() {
+    return (await api(BASE)).values ?? [];
+  },
+  append(row) {
+    return api(`${BASE}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+      method: "POST",
+      body: JSON.stringify({ values: [row] }),
+    });
+  },
+};
+
+const csvBackend = {
+  async list() {
+    const res = await fetch("/api/rows");
+    if (!res.ok) throw new Error(`CSV server error ${res.status}`);
+    return res.json();
+  },
+  async append(row) {
+    const res = await fetch("/api/rows", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ values: [row] }),
+    });
+    if (!res.ok) throw new Error(`CSV server error ${res.status}`);
+  },
+};
+
+const backend = LOCAL ? csvBackend : sheetsBackend;
 
 function render(values) {
   const table = $("table");
@@ -54,32 +87,29 @@ function render(values) {
 async function load() {
   setStatus("Loading...");
   try {
-    const data = await api(BASE);
-    render(data.values ?? []);
+    const values = await backend.list();
+    render(values);
     $("app").hidden = false;
-    setStatus(`Loaded ${(data.values ?? []).length} rows.`);
+    setStatus(`Loaded ${values.length} rows${LOCAL ? " from data.csv (local mode)" : ""}.`);
   } catch (err) {
-    if (accessToken) setStatus(err.message, true);
+    if (!err.handled) setStatus(err.message, true);
   }
 }
 
 async function addRow(event) {
   event.preventDefault();
-  const row = [$("term1").value, $("term2").value];
   setStatus("Saving...");
   try {
-    await api(`${BASE}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
-      method: "POST",
-      body: JSON.stringify({ values: [row] }),
-    });
+    await backend.append([$("term1").value, $("term2").value]);
     $("add-form").reset();
     await load();
   } catch (err) {
-    if (accessToken) setStatus(err.message, true);
+    if (!err.handled) setStatus(err.message, true);
   }
 }
 
 function initAuth() {
+  if (LOCAL) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPE,
@@ -99,3 +129,8 @@ function initAuth() {
 
 $("signin").addEventListener("click", () => tokenClient.requestAccessToken());
 $("add-form").addEventListener("submit", addRow);
+
+if (LOCAL) {
+  $("signin").hidden = true;
+  load();
+}

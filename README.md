@@ -24,13 +24,15 @@ Static page that reads and appends rows to a private Google Sheet from the brows
 
 Do not share the sheet with anyone or anything. You sign in as its owner, so the token already has access.
 
-## Run locally
+## Run locally (CSV mode, no Google)
 
 ```bash
-python3 -m http.server 8000
+python3 server.py
 ```
 
-Open http://localhost:8000, click **Sign in with Google**, and click through the "unverified app" warning (Advanced → continue).
+Open http://localhost:8000. On `localhost` the page skips Google sign-in and reads and writes `data.csv` through `server.py`. The file is created on first run and is git-ignored.
+
+On any other host (GitHub Pages) the page uses the Google Sheet and asks you to sign in. Click through the "unverified app" warning (Advanced → continue).
 
 ## Host on GitHub Pages
 
