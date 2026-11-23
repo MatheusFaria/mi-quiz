@@ -26,6 +26,10 @@ class Handler(SimpleHTTPRequestHandler):
             csv.writer(f).writerow(row)
         self.send_json({"ok": True})
 
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def send_json(self, data):
         payload = json.dumps(data).encode()
         self.send_response(200)
